@@ -4,7 +4,7 @@ class TaskCard extends StatelessWidget {
   final String title;
   final String description;
 
-  TaskCard({this.title, this.description});
+  TaskCard({@required this.title, @required this.description});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class TaskCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title ?? "(Unnamed Task)",
+            title ?? '(Unnamed Task)',
             style: TextStyle(
               color: Color(0xFF211551),
               fontSize: 22.0,
@@ -33,7 +33,7 @@ class TaskCard extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: 10.0),
             child: Text(
-              description ?? "No description added.",
+              description ?? 'No description added.',
               style: TextStyle(
                 fontSize: 16.0,
                 color: Color(0xFF86829D),
@@ -51,7 +51,7 @@ class TodoItemWidget extends StatelessWidget {
   final String text;
   final bool isDone;
 
-  TodoItemWidget({this.text, @required this.isDone});
+  TodoItemWidget({@required this.text, @required this.isDone});
 
   @override
   Widget build(BuildContext context) {
@@ -76,14 +76,20 @@ class TodoItemWidget extends StatelessWidget {
                       width: 1.5,
                     ),
             ),
-            child: Image(image: AssetImage('assets/images/check_icon.png')),
+            child: Icon(
+              Icons.done,
+              size: 15,
+              color: Color(0xFFF6F6F6),
+            ),
           ),
-          Text(
-            text ?? '(Unnamed)',
-            style: TextStyle(
-              color: isDone ? Color(0xFF211551) : Color(0xFF86829D),
-              fontSize: 16.0,
-              fontWeight: isDone ? FontWeight.bold : FontWeight.w500,
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: isDone ? Color(0xFF211551) : Color(0xFF86829D),
+                fontSize: 16.0,
+                fontWeight: isDone ? FontWeight.bold : FontWeight.w500,
+              ),
             ),
           ),
         ],

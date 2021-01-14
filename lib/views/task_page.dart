@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'package:task_manager/helper/database_helper.dart';
 import 'package:task_manager/models/task.dart';
@@ -17,17 +18,27 @@ class TaskPage extends StatefulWidget {
 class _TaskPageState extends State<TaskPage> {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
+  final TextEditingController _titleController = TextEditingController();
+
+  bool _contentVisible = false;
+
   int _taskId = 0;
   String _taskTitle = '';
+  String _taskDescription = '';
 
   @override
   void initState() {
     super.initState();
 
     if (widget.task != null) {
+      _contentVisible = true;
+
       _taskId = widget.task.id;
       _taskTitle = widget.task.title;
+      _taskDescription = widget.task.description;
     }
+
+    super.initState();
   }
 
   @override
@@ -64,26 +75,46 @@ class _TaskPageState extends State<TaskPage> {
                         child: Padding(
                           padding: EdgeInsets.only(right: 24.0),
                           child: TextField(
-                            controller: TextEditingController()
-                              ..text = _taskTitle,
-                            onSubmitted: (value) async {
-                              if (value != '') {
-                                if (widget.task == null) {
-                                  DatabaseHelper _databaseHelper =
-                                      DatabaseHelper();
-
-                                  Task _newTask = Task(title: value);
-                                  await _databaseHelper.insertTask(_newTask);
-
-                                  Navigator.pop(context);
-                                } else {
-                                  print('update');
-                                }
+                            controller: _titleController..text = _taskTitle,
+                            onChanged: (value) async {
+                              if (_taskTitle != null) {
+                                await _databaseHelper.updateTaskTitle(
+                                  _taskId,
+                                  value,
+                                );
+                                _taskTitle = value;
                               }
                             },
                             decoration: InputDecoration(
                               hintText: 'Enter task title...',
                               border: InputBorder.none,
+                              suffixIcon: IconButton(
+                                onPressed: () async {
+                                  String textFieldValue = _titleController.text;
+
+                                  if (textFieldValue.trim() != '') {
+                                    if (widget.task == null) {
+                                      Task _newTask =
+                                          Task(title: textFieldValue);
+                                      _taskId = await _databaseHelper
+                                          .insertTask(_newTask);
+
+                                      setState(() {
+                                        _contentVisible = true;
+                                        _taskTitle = textFieldValue;
+                                      });
+                                    }
+                                  }
+                                },
+                                icon: Visibility(
+                                  visible: _contentVisible ? false : true,
+                                  child: Icon(
+                                    FontAwesomeIcons.arrowCircleRight,
+                                    size: 28.0,
+                                    color: Color(0xFF5F6368),
+                                  ),
+                                ),
+                              ),
                             ),
                             style: TextStyle(
                               fontSize: 26.0,
@@ -95,13 +126,31 @@ class _TaskPageState extends State<TaskPage> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(bottom: 12.0),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Enter description for the task...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 24.0),
+                Visibility(
+                  visible: _contentVisible,
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 12.0),
+                    child: TextField(
+                      controller: TextEditingController()
+                        ..text = _taskDescription,
+                      onChanged: (value) async {
+                        if (value.trim() != '') {
+                          if (_taskId != 0) {
+                            await _databaseHelper.updateTaskDescription(
+                              _taskId,
+                              value,
+                            );
+                            _taskDescription = value;
+                          }
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Enter description for the task...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 24.0),
+                      ),
+                      keyboardType: TextInputType.multiline,
+                      maxLines: null,
                     ),
                   ),
                 ),
@@ -114,7 +163,20 @@ class _TaskPageState extends State<TaskPage> {
                         itemCount: snapshot.data.length,
                         itemBuilder: (context, index) {
                           return GestureDetector(
-                            onTap: () {},
+                            onTap: () async {
+                              if (snapshot.data[index].isDone == 0) {
+                                await _databaseHelper.updateTodoIsDone(
+                                  snapshot.data[index].id,
+                                  1,
+                                );
+                              } else {
+                                await _databaseHelper.updateTodoIsDone(
+                                  snapshot.data[index].id,
+                                  0,
+                                );
+                              }
+                              setState(() {});
+                            },
                             child: TodoItemWidget(
                               text: snapshot.data[index].text,
                               isDone: snapshot.data[index].isDone == 0
@@ -127,75 +189,85 @@ class _TaskPageState extends State<TaskPage> {
                     );
                   },
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 20.0,
-                        height: 20.0,
-                        margin: EdgeInsets.only(right: 12.0),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(6.0),
-                          border: Border.all(
-                            color: Color(0xFF86829D),
-                            width: 1.5,
+                Visibility(
+                  visible: _contentVisible,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 20.0,
+                          height: 20.0,
+                          margin: EdgeInsets.only(right: 12.0),
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(6.0),
+                            border: Border.all(
+                              color: Color(0xFF86829D),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.done,
+                            size: 15,
+                            color: Color(0xF6F6F6),
                           ),
                         ),
-                        child: Image(
-                          image: AssetImage('assets/images/check_icon.png'),
-                        ),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          onSubmitted: (value) async {
-                            if (value != '') {
-                              if (widget.task != null) {
-                                DatabaseHelper _databaseHelper =
-                                    DatabaseHelper();
+                        Expanded(
+                          child: TextField(
+                            controller: TextEditingController()..text = '',
+                            onSubmitted: (value) async {
+                              if (value.trim() != '') {
+                                if (_taskId != null) {
+                                  TodoItem _newTodoItem = TodoItem(
+                                    taskId: _taskId,
+                                    text: value,
+                                    isDone: 0,
+                                  );
 
-                                TodoItem _newTodoItem = TodoItem(
-                                  taskId: widget.task.id,
-                                  text: value,
-                                  isDone: 0,
-                                );
-
-                                await _databaseHelper.insertTodo(
-                                  _newTodoItem,
-                                );
-                                setState(() {});
-                              } else {
-                                print('task doesnt exist');
+                                  await _databaseHelper.insertTodo(
+                                    _newTodoItem,
+                                  );
+                                  setState(() {});
+                                }
                               }
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Enter a new To-Do...',
-                            border: InputBorder.none,
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Enter a new To-Do...',
+                              border: InputBorder.none,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            Positioned(
-              bottom: 24.0,
-              right: 24.0,
-              child: GestureDetector(
-                child: Container(
-                  width: 60.0,
-                  height: 60.0,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFFE3577),
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                  child: Icon(
-                    Icons.delete_forever,
-                    size: 28.0,
-                    color: Color(0xFFFFFFFF),
+            Visibility(
+              visible: _contentVisible,
+              child: Positioned(
+                bottom: 24.0,
+                right: 24.0,
+                child: GestureDetector(
+                  onTap: () async {
+                    if (_taskId != 0) {
+                      await _databaseHelper.deleteTask(_taskId);
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: Container(
+                    width: 60.0,
+                    height: 60.0,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFFE3577),
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                    child: Icon(
+                      Icons.delete_forever,
+                      size: 28.0,
+                      color: Color(0xFFFFFFFF),
+                    ),
                   ),
                 ),
               ),
